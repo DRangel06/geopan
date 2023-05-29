@@ -1,0 +1,139 @@
+<!-- RANGEL BLANCO DIEGO ALEJANDRO -->
+<!-- GEOPAN - GEOVISOR DE LAS PANADERÍAS EN LA COMUNA 17-->
+<!-- ING. TOPOGRÁFICA - SIG WEB - UNIVERSIDAD DEL VALLE -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Diego A. Rangel">
+
+  <title>GeoPAN - Visor Web</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" type="text/css"
+    href="https://rawgit.com/MarcChasse/leaflet.ScaleFactor/master/leaflet.scalefactor.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.EasyButton/2.4.0/easy-button.css" />
+  <!-- Leaflet.markercluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+
+  <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.0/css/font-awesome.css" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.EasyButton/2.4.0/easy-button.css" />
+
+  <link rel="stylesheet" href="posición/dist/L.Control.Locate.min.css" />
+  <link rel="stylesheet" href="geocodificar/l.geosearch.css" />
+
+  <link rel="stylesheet" href="styles.css" />
+
+</head>
+
+<body class="">
+  <div id="header">
+    <h1>PANADERÍAS COMUNA 17</h1>
+  </div>
+
+  <div id="map" style="z-index:0">
+    <img id="norte" src="./img/norte.png" style="z-index:9999"></img>
+  </div>
+
+  <!-- SCRIPTS PARA FUNCIONAMIENTO DEL MAPA -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://npmcdn.com/jquery@3.0.0/dist/jquery.min.js"></script>
+  <script src="https://npmcdn.com/leaflet@1.0.0-rc.1/dist/leaflet.js"></script>
+  <script src="https://rawgit.com/MarcChasse/leaflet.ScaleFactor/master/leaflet.scalefactor.min.js"></script>
+  <!-- SCRIPT Easy Button -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.EasyButton/2.4.0/easy-button.js"></script>
+  <!-- SCRIPT GEOLOCALIZACIÓN-->
+  <script src="posición/src/L.Control.Locate.js"></script>
+  <script src="geocodificar/l.control.geosearch.js"></script>
+  <!-- SCRIPT GEOCODIFICADOR -->
+  <script src="geocodificar/l.geosearch.provider.esri.js"></script>
+  <!-- SCRIPT CLUSTER / MAPAS DE CALOR -->
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster-src.js"></script>
+  <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
+  <!-- SCRIPT Leaflet.Graticule2 (CUADRÍCULA / GRILLA) -->
+  <script src="./coordenadas/Leaflet.Graticule.js"></script>
+  <!-- SCRIPT CONEXIÓN GeoJSON -->
+  <script src="./layers/comuna.js"></script>
+  <script src="./layers/puntos.js"></script>
+  <!-- SCRIPT CONEXIÓN HEAT -->
+  <script src="./calor/leaflet-heat.js"></script>
+  <!-- SCRIPT CONEXIÓN MAPA -->
+  <script src="./index.js" style="z-index:0"></script>
+
+  <!-- SCRIPT DE LA CONFIGURACIÓN DEL MAPA -->
+  <script>
+    //LOCALIZACIÓN GPS
+    L.control.locate({
+      setView: 'false',
+      flyto: 'false',
+      drawCircle: 'false',
+      showCompass: 'true',
+      drawMarker: 'false',
+      keepCurrentZoomLevel: 'true',
+      locateOptions: {
+        enableHighAccuracy: true
+      }
+    }).addTo(map);
+
+    //BOTÓN DE BÚSQUEDA
+    new L.Control.GeoSearch({
+      provider: new L.GeoSearch.Provider.Esri()
+    }).addTo(map);
+
+    //CONFIGURACIÓN RETÍCULA MAPA
+    var graticule = L.latlngGraticule({
+      showLabel: true,
+      color: '#222',
+      zoomInterval: [
+        { start: 12, end: 13, interval: 0.05 },
+        { start: 14, end: 15, interval: 0.025 },
+        { start: 16, end: 17, interval: 0.01 }
+      ]
+    });
+
+    // Crear un botón de visualizar reticula con Leaflet.EasyButton
+    var graticuleButton = L.easyButton('<img src="./img/cartesiano.png"  align="absmiddle" height="16px">', function () {
+      if (map.hasLayer(graticule)) {
+        map.removeLayer(graticule);
+      } else {
+        graticule.addTo(map);
+      }
+    }, 'Reticula').addTo(map);
+
+    //Mapa de Calor
+    fetch('./layers/puntos.js')
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (data) {
+        puntos.addData(data);
+
+        var coordinates = [];
+        data.features.forEach(function (feature) {
+          coordinates.push(feature.geometry.coordinates.reverse());
+        });
+
+        var heatLayer = L.heatLayer(coordinates);
+
+        //Botton para mapa de calor
+        var button = L.easyButton('<img src="iconos/heatmap.jpg"  align="absmiddle" height="16px">', function () {
+          if (map.hasLayer(heatLayer)) {
+            map.removeLayer(heatLayer);
+          } else {
+            map.addLayer(heatLayer);
+          }
+        }, 'Mapa de calor').addTo(map);
+      });
+
+  </script>
+</body>
+
+</html>
